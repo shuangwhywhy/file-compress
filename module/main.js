@@ -4,6 +4,25 @@ const Path = require('path');
 const Zip = require('node-zip');
 const BASE_PATH = require('app-root-path').path;
 
+/**
+ * To make zip data of the specified folder and all its contents. It should test the including and excluding
+ * rules first to determine if the file should be zipped.
+ *
+ * @arg `path`: path of the file to be zipped.
+ * @arg `root`: the root path of the archive, in other words, the file path in the archive should be
+ *      # relative to the `root` path in file system.
+ * @arg `includes`: the including rules, defined as an array of regular expressions. If the path matches
+ *      # any of the including expression, it can be added to the archive, otherwise, it is skipped.
+ * @arg `excludes`: the excluding rules, defined as an array of regular expressions. If the path matches
+ *      # any of the excluding expression, it must be skipped even if it matches an including rule.
+ * @arg `level`: it limits the maximum path levels in the archive.
+ *      # `level` < 0: infinite levels;
+ *      # `level` = 0: here is the last, the file cannot be added to the archive;
+ *      # `level` > 0: here is not the last, the current path can be added, and for its sub-folders or its
+ *      #              containing files, the `level` is reduced by 1 (recursively).
+ * @arg `zip`: the Zip container that holds all the files that matches.
+ * @return the zip container.
+ */
 function doZip (path, root = '/', includes = ['.*'], excludes = [], level = -1, zip = new Zip()) {
 	if (level == 0) {
 		return zip;
@@ -38,12 +57,26 @@ function doZip (path, root = '/', includes = ['.*'], excludes = [], level = -1, 
 	return zip;
 }
 
+/**
+ * To evaluate the path definition (may contain regular expressions) and find out the "real" paths
+ * which matches the definition.
+ *
+ * @arg `folders`: the path to evaluate which is represented in an array of folders.
+ * @arg `basePath`: it is used for self-recursion. It is the project home path by default and
+ *      # it is set to the next folder in each recursive call.
+ * @arg `result`: the array to store all the matching paths.
+ * @return the array of all the matching paths.
+ */
 function matchPath (folders, basePath = BASE_PATH, result = []) {
+	// turn the "next" folder name into regular expression, should match the bounds and enable multi-line:
 	var regex = new RegExp('^' + folders.shift(1) + '$', 'm');
 
+	// only hits directory:
 	if (fs.statSync(basePath).isDirectory()) {
+		// to get sub-folders of the "next" folder:
 		var subfolders = fs.readdirSync(basePath);
 		if (folders.length > 0) {
+			// if the path has not traversed to the end yet, then recursively test its sub-folders:
 			for (let i in subfolders) {
 				var matches = regex.exec(subfolders[i]);
 				if (matches) {
@@ -52,6 +85,7 @@ function matchPath (folders, basePath = BASE_PATH, result = []) {
 				}
 			}
 		} else {
+			// if the path is at the end, then add it to the result array if it matches the regexp:
 			for (let i in subfolders) {
 				var matches = regex.exec(subfolders[i]);
 				if (matches) {
@@ -65,12 +99,12 @@ function matchPath (folders, basePath = BASE_PATH, result = []) {
 
 module.exports = {
 	/**
-	 * @arg config: the config file path, relative to the project home.
-	 * config file should be a js object whose keys are the paths of sub-modules of your project,
-	 * and values are extended from the default values, please @see compress.default.conf.js.
-	 * @return -
-	 *
 	 * To archive files into Zips which are deflated compressed.
+	 *
+	 * @arg `config`: the config file path, relative to the project home.
+	 *      # config file should be a js object whose keys are the paths of sub-modules of your project,
+	 *      # and values are extended from the default values, please @see compress.default.conf.js.
+	 * @return undefined
 	 */
 	archive: function (config) {
 		// to load the config file:
