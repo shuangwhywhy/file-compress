@@ -42,3 +42,4 @@ test/
 *.zip
 assets/
 compress.conf.js
+src/
