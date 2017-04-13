@@ -1,3 +1,8 @@
+require("babel-register")({
+	extensions: [".es6", ".es", ".jsx", ".js"],
+	cache: true
+});
+const system = require('system');
 const fs = require('fs-extra');
 const fs2 = require('fs.extra');
 const Path = require('path');
@@ -113,6 +118,13 @@ module.exports = {
 		for (let path in conf) {
 			// to merge the config with the defaults:
 			let con = Object.assign(require('../compress.default.conf.js'), conf[path]);
+
+			// to bind some common utilities to the `con` object, which is regarded as the context for path evaluation:
+			// current timestamp:
+			con.NOW = new Date().getTime();
+			// a random number:
+			con.RAND = Math.random();
+
 			// to normalize the path. The paths may be defined in absolute mode, like '/src/pages',
 			// which semantically regards the **project home** as the root. In this case, it must be
 			// transformed into a relative path.
@@ -131,8 +143,11 @@ module.exports = {
 			for (let i in folders) {
 				let f = folders[i];
 				// to get the real archive saving path by joining the project home path and replacing the regular expression matches.
-				let archive = Path.join(BASE_PATH, con.dest_file.replace(/\{\$(\d)+\}/gm, function () {
+				let archive = Path.join(BASE_PATH, con.dest_file.replace(/\{\s*\$(\d+)\s*\}/gm, function () {
 					return f.matches[arguments[1]];
+				}).replace(/\{:\s*([\w\W]*?)\s*:\}/gm, function () {
+					// to replace javascript expressions
+					return (new Function('return (' + arguments[1] + ');')).call(con);
 				}));
 
 				// to delete the archive container folder before writing to it:

@@ -1,15 +1,16 @@
 {
   "name": "file-compress",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node index.js"
+    "test": "node test.js"
   },
   "author": "Joey Qiang <qiangyizhou@iqiyi.com> (http://www.iqiyi.com)",
   "license": "ISC",
   "dependencies": {
   	"babel-register": "",
+    "system": "",
     "fs": "",
     "fs-extra": "",
     "fs.extra": "",
