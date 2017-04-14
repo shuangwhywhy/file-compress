@@ -1,3 +1,5 @@
+/* -- DO NOT change or move this file -- */
+/* The default configurations */
 module.exports = {
 
 	/* Default archive file name, saving to project home */

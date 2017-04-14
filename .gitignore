@@ -43,3 +43,4 @@ test/
 assets/
 compress.conf.js
 src/
+.npmignore
