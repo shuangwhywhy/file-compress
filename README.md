@@ -3,7 +3,7 @@
 This is a nodejs utility package. It archives project files into one or more zip files. It has very simple APIs and is highly configurable in an easy way.
 
 - Name: **file-compress**
-- Current Version: **v1.0.3**
+- Current Version: **v1.0.6**
 - Author: **Yizhou Qiang**
 - Email: **qyz.yswy@hotmail.com**
 
@@ -83,4 +83,6 @@ This is a nodejs utility package. It archives project files into one or more zip
 - You can use regular expression grouping replacements in the path names. The syntax is `{$matching_index}`, e.g. `{$0}`, `{$1}`, etc.
 - You can write JS-expressions between `{:` `:}`. The script context is the current config block. Please refer to the list below to see some embedded variables and functions:
 	- `this.NOW`: current timestamp in milliseconds. It is set to the start time of running the script.
+	- `this.RAND`: a random decimal number, between 0 (including) to 1 (excluding).
+	- `this.MD5(msg)`: to generate md5 hash of given msg.
 	- TBD.
