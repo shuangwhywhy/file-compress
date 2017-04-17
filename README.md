@@ -32,11 +32,14 @@ This is a nodejs utility package. It archives project files into one or more zip
 		module.exports = {
 			'/static/pages/.*':	{	dest_file: '/assets/{: this.NOW :}/{$0}.zip',
 									excludes: ['.test.js'],
-									archive_root: '.'},
+									archive_root: '.',
+									filenameMapper: function (path) {
+										return Path.resolve(Path.dirname(path), this.MD5(path) + Path.extname(path));
+									}},
 			'/static/common':	{	dest_file: '/assets/common.zip',
 									includes: ['.jpg', '.png', '.js'],
 									excludes: ['test.*'],
-									archive_root: '.'}
+									archive_root: '..'}
 		};
 
 	- *As you can see, it is just a module object. The keys are the paths that are **relative to your project home** that you wish to archive as zip files separately. You can use ***regular expressions*** in the path names to reduce the number of entries in your config file to keep concise.*
@@ -54,6 +57,7 @@ This is a nodejs utility package. It archives project files into one or more zip
 	- `excludes`: ***array*** | to filter out the filenames (with pathnames) that matches the *regular expression* rules. **Default**: `[]`
 	- `archive_root`: ***string*** | cwd of the in-archive root path. **Default**: `'.'`
 	- `empty_folder`: ***boolean*** | should empty the archive containing folder first? **Default**: `false`
+	- `filenameMapper`: ***function*** | to transfer the real file path to its corresponding archived path. **Default**: `(path) => path`
 
 ---
 
