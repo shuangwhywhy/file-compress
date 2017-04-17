@@ -17,4 +17,9 @@ module.exports = {
 	/* should the zip container folder be emptied at first time? */
 	empty_folder: false,
 
+	/* filename mapper. Given the real-world filename and its full path, should return the corresponding filename appeared in archive */
+	filenameMapper: function (path) {
+		return path;
+	},
+
 };

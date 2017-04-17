@@ -8,6 +8,7 @@ const fs2 = require('fs.extra');
 const Path = require('path');
 const Zip = require('node-zip');
 const BASE_PATH = require('app-root-path').path;
+const md5 = require('md5');
 
 /**
  * To make zip data of the specified folder and all its contents. It should test the including and excluding
@@ -20,6 +21,8 @@ const BASE_PATH = require('app-root-path').path;
  *      # any of the including expression, it can be added to the archive, otherwise, it is skipped.
  * @arg `excludes`: the excluding rules, defined as an array of regular expressions. If the path matches
  *      # any of the excluding expression, it must be skipped even if it matches an including rule.
+ * @arg `filenameMapper`: Given the real-world filename and its full path, should return the corresponding
+ *      #filename appeared in archive.
  * @arg `level`: it limits the maximum path levels in the archive.
  *      # `level` < 0: infinite levels;
  *      # `level` = 0: here is the last, the file cannot be added to the archive;
@@ -28,7 +31,7 @@ const BASE_PATH = require('app-root-path').path;
  * @arg `zip`: the Zip container that holds all the files that matches.
  * @return the zip container.
  */
-function doZip (path, root = '/', includes = ['.*'], excludes = [], level = -1, zip = new Zip()) {
+function doZip (path, root = '/', includes = ['.*'], excludes = [], filenameMapper = function (path) {return path;}, level = -1, zip = new Zip()) {
 	if (level == 0) {
 		return zip;
 	}
@@ -36,28 +39,32 @@ function doZip (path, root = '/', includes = ['.*'], excludes = [], level = -1, 
 		level --;
 	}
 	if (fs.statSync(path).isFile()) {
-		var relative = Path.relative(root, path);
 		var match = false;
 		for (let i in includes) {
 			let reg = new RegExp(includes[i], 'm');
-			if (reg.test(relative)) {
+			if (reg.test(path)) {
 				match = true;
 				break;
 			}
 		}
 		for (let i in excludes) {
 			let reg = new RegExp(excludes[i], 'm');
-			if (reg.test(relative)) {
+			if (reg.test(path)) {
 				match = false;
 				break;
 			}
 		}
+		var relative = Path.relative(root, path);
 		if (match) {
-			zip.file(relative, fs.readFileSync(path));
+			var filename = filenameMapper(relative);
+			if (!filename) {
+				filename = relative;
+			}
+			zip.file(filename, fs.readFileSync(path));
 		}
 	} else {
 		var dir = fs.readdirSync(path);
-		dir.forEach(name => doZip(Path.join(path, name), root, includes, excludes, level, zip));
+		dir.forEach(name => doZip(Path.join(path, name), root, includes, excludes, filenameMapper, level, zip));
 	}
 	return zip;
 }
@@ -85,7 +92,7 @@ function matchPath (folders, basePath = BASE_PATH, result = []) {
 			for (let i in subfolders) {
 				var matches = regex.exec(subfolders[i]);
 				if (matches) {
-					basePath = Path.join(basePath, matches[0]);
+					basePath = Path.resolve(Path.join(basePath, matches[0]));
 					matchPath(folders, basePath, result);
 				}
 			}
@@ -94,7 +101,7 @@ function matchPath (folders, basePath = BASE_PATH, result = []) {
 			for (let i in subfolders) {
 				var matches = regex.exec(subfolders[i]);
 				if (matches) {
-					result.push({path: Path.join(basePath, matches[0]), matches: matches});
+					result.push({path: Path.resolve(Path.join(basePath, matches[0])), matches: matches});
 				}
 			}
 		}
@@ -120,10 +127,14 @@ module.exports = {
 			let con = Object.assign(require('../compress.default.conf.js'), conf[path]);
 
 			// to bind some common utilities to the `con` object, which is regarded as the context for path evaluation:
-			// current timestamp:
+			// - current timestamp:
 			con.NOW = new Date().getTime();
-			// a random number:
+			// - a random number:
 			con.RAND = Math.random();
+			// - md5:
+			con.MD5 = function (msg) {
+				return md5(msg);
+			};
 
 			// to normalize the path. The paths may be defined in absolute mode, like '/src/pages',
 			// which semantically regards the **project home** as the root. In this case, it must be
@@ -155,8 +166,13 @@ module.exports = {
 					fs2.rmrfSync(Path.dirname(archive));
 				}
 
-				// to generate the zip object:
-				let zip = doZip(f.path, Path.join(f.path, con.archive_root), con.includes, con.excludes);
+				// to generate the zip file:
+				let zip = doZip(f.path, Path.join(f.path, con.archive_root.replace(/\{\s*\$(\d+)\s*\}/gm, function () {
+					return f.matches[arguments[1]];
+				}).replace(/\{:\s*([\w\W]*?)\s*:\}/gm, function () {
+					// to replace javascript expressions
+					return (new Function('return (' + arguments[1] + ');')).call(con);
+				})), con.includes, con.excludes, con.filenameMapper.bind(con));
 				let data = zip.generate({base64:false, compression: 'DEFLATE'});
 
 				// to create the empty archive file if not exist as well as the missing directories in the path:
