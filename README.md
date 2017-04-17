@@ -29,6 +29,7 @@ This is a nodejs utility package. It archives project files into one or more zip
 
 	Setup the paths in your config file that you want to archive separately. The config file should look like this:
 
+		const Path = require('path');
 		module.exports = {
 			'/static/pages/.*':	{	dest_file: '/assets/{: this.NOW :}/{$0}.zip',
 									excludes: ['.test.js'],
