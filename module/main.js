@@ -31,7 +31,7 @@ const md5 = require('md5');
  * @arg `zip`: the Zip container that holds all the files that matches.
  * @return the zip container.
  */
-function doZip (path, root = '/', includes = ['.*'], excludes = [], filenameMapper = function (path) {return path;}, level = -1, zip = new Zip()) {
+function doZip (path, root = '/', includes = ['.*'], excludes = [], filenameMapper = function (path) {return path;}, fileMap = {}, level = -1, zip = new Zip()) {
 	if (level == 0) {
 		return zip;
 	}
@@ -56,7 +56,7 @@ function doZip (path, root = '/', includes = ['.*'], excludes = [], filenameMapp
 		}
 		var relative = Path.relative(root, path);
 		if (match) {
-			var filename = filenameMapper(relative);
+			var filename = filenameMapper(relative, fileMap);
 			if (!filename) {
 				filename = relative;
 			}
@@ -64,7 +64,7 @@ function doZip (path, root = '/', includes = ['.*'], excludes = [], filenameMapp
 		}
 	} else {
 		var dir = fs.readdirSync(path);
-		dir.forEach(name => doZip(Path.join(path, name), root, includes, excludes, filenameMapper, level, zip));
+		dir.forEach(name => doZip(Path.join(path, name), root, includes, excludes, filenameMapper, fileMap, level, zip));
 	}
 	return zip;
 }
@@ -118,7 +118,7 @@ module.exports = {
 	 *      # and values are extended from the default values, please @see compress.default.conf.js.
 	 * @return undefined
 	 */
-	archive: function (config) {
+	archive: function (config, fileMap = {}) {
 		// to load the config file:
 		var conf = require(Path.join(BASE_PATH, config));
 
@@ -172,7 +172,7 @@ module.exports = {
 				}).replace(/\{:\s*([\w\W]*?)\s*:\}/gm, function () {
 					// to replace javascript expressions
 					return (new Function('return (' + arguments[1] + ');')).call(con);
-				})), con.includes, con.excludes, con.filenameMapper.bind(con));
+				})), con.includes, con.excludes, con.filenameMapper.bind(con), fileMap);
 				let data = zip.generate({base64:false, compression: 'DEFLATE'});
 
 				// to create the empty archive file if not exist as well as the missing directories in the path:

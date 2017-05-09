@@ -3,7 +3,7 @@
 This is a nodejs utility package. It archives project files into one or more zip files. It has very simple APIs and is highly configurable in an easy way.
 
 - Name: **file-compress**
-- Current Version: **v1.0.6**
+- Current Version: **v1.0.9**
 - Author: **Yizhou Qiang**
 - Email: **qyz.yswy@hotmail.com**
 
@@ -79,6 +79,12 @@ This is a nodejs utility package. It archives project files into one or more zip
 ---
 
 ## Hints
+
+- to map the filename, you can take advantage of path module. For instance, to flare out the pathnames, you can do the following:
+
+		filenameMapper: function (path) {
+			return require('path').basename(path);
+		}
 
 - You can use regular expression grouping replacements in the path names. The syntax is `{$matching_index}`, e.g. `{$0}`, `{$1}`, etc.
 - You can write JS-expressions between `{:` `:}`. The script context is the current config block. Please refer to the list below to see some embedded variables and functions:
